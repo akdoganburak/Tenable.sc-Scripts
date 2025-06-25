@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: was-scanner-config
+data:
+  tenable_was.conf: |
+    "config_id"="17702d57-1c1d-41de-a05c-fb6c77a8bfb9"
+    "results_visibility"=dashboard
+    scan {
+        assessment {
+            dictionary=limited
+            enable=true
+        }
+        audit {
+            cookies=false
+            forms=false
+            headers=false
+            jsons=false
+            links=false
+            "parameter_names"=false
+            "parameter_values"=false
+            "path_parameters"=false
+            "ui_forms"=false
+            "ui_inputs"=false
+            xmls=false
+        }
+        browser {
+            "ignore_images"=true
+            "job_timeout"=60
+            "pool_size"=1
+            "screen_height"=1200
+            "screen_width"=1600
+        }
+        "debug_mode"=false
+        http {
+            "custom_user_agent"=false
+            "include_scan_id"=false
+            "request_concurrency"=10
+            "request_headers" {
+                Accept="*/*"
+                Accept-Language="en-US,en;q=0.5"
+            }
+            "request_redirect_limit"=3
+            "request_timeout"=30
+            "response_max_size"=5000000
+            "user_agent"="WAS/%v"
+        }
+        plugin {
+            families=[]
+            ids=[
+                114613,113013,98033,112530,113219,98009,114611,98527,98616,98617,
+                98008,112495,98136,114110,112496,114382,113012,98111,114132,98019,
+                98526,98137,98056,113010,114674,98007,114675,114128,98154,98000,
+                112554,98142,114564,98063,112555,98057,112542,112569,98143,98141,
+                112544,112541,113333,112650,98026,112546,113316,113225,98024,112553,
+                112570,98003,98025,98064,98062,98138,98140,98035,113329,98044,112552,
+                98715,98060,98139,98091,113393,112551,115491,112491,114247,98036,
+                112537,112543,112493,113045,98059,112616,112563,98043,112599,113011,
+                98034,114543,112540,98145,98648,98618,115540,112529,112538,112598,
+                112535,113330,113224,112494,112536,98772,112539
+            ]
+            mode=enable
+            names=[]
+            "rate_limiter" {
+                autothrottle=true
+                "requests_per_second"=25
+                "timeout_threshold"=100
+            }
+        }
+        "queue_timeout"="08:00:00"
+        scope {
+            "auto_redundant_paths"=1
+            "dom_depth_limit"=1
+            "exclude_binaries"=true
+            option=urls
+            "page_limit"=1
+        }
+        target="http://zero.webappsecurity.com/"
+        timeout="00:10:00"
+    }
+    "template_id"="3e5862a6-e672-4a22-97b8-9301ec3439c8"
+    "vulnerability_threshold"=High
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: was-scanner
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      initContainers:
+      - name: init-config
+        image: busybox
+        command: ["sh", "-c"]
+        args:
+          - cp /config/tenable_was.conf /scanner/tenable_was.conf
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+        - name: scanner-volume
+          mountPath: /scanner
+      containers:
+      - name: was-scanner
+        image: tenable/was-scanner:latest
+        env:
+        - name: WAS_MODE
+          value: cicd
+        - name: ACCESS_KEY
+          value: e1fc5b82189a3e766d6cafe6b23b8e25b27ecf4c24e282096c0bd05778834ed7
+        - name: SECRET_KEY
+          value: 132e661fe60302dd58f1dbe063ea86a8f2553a7cb852fb9ff1a249ee2a4f4e9d
+        volumeMounts:
+        - name: scanner-volume
+          mountPath: /scanner
+      restartPolicy: Never
+      volumes:
+      - name: config-volume
+        configMap:
+          name: was-scanner-config
+      - name: scanner-volume
+        emptyDir: {}
