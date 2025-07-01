@@ -10,7 +10,10 @@ pool:
   name: Default
 
 steps:
-- script: kubectl apply -f was_job.yaml
+- script: python get_config.py
+  displayName: 'Run a one-line script'
+
+- script: kubectl apply -f was-job-updated.yaml
   displayName: 'Run a one-line script'
 
 
